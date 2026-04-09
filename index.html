@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>WebTV by Skye</title>
+
+<style>
+
+body{
+margin:0;
+background:#111;
+font-family:Arial;
+color:white;
+overflow:hidden;
+}
+
+header{
+padding:20px 40px;
+font-size:40px;
+font-weight:bold;
+color:#e50914;
+}
+
+#rows{
+padding-left:40px;
+overflow-y:auto;
+height:85vh;
+}
+
+.row{
+margin-bottom:40px;
+}
+
+.row-title{
+font-size:26px;
+margin-bottom:12px;
+}
+
+.cards{
+display:flex;
+gap:14px;
+overflow-x:auto;
+scroll-behavior:smooth;
+}
+
+.card{
+width:220px;
+height:120px;
+background:#222;
+border-radius:10px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:18px;
+cursor:pointer;
+transition:.2s;
+outline:none;
+}
+
+.card:hover{
+transform:scale(1.1);
+}
+
+.card:focus{
+outline:4px solid #e50914;
+transform:scale(1.1);
+}
+
+#player{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:black;
+display:none;
+z-index:999;
+}
+
+video{
+width:100%;
+height:100%;
+background:black;
+}
+
+#exit{
+position:absolute;
+top:20px;
+right:40px;
+font-size:26px;
+background:#e50914;
+border:none;
+color:white;
+padding:10px 20px;
+cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>WebTV by Skye</header>
+
+<div id="rows"></div>
+
+<div id="player">
+
+<button id="exit">Exit</button>
+
+<video id="videoPlayer" controls autoplay></video>
+
+</div>
+
+<script>
+
+const playlist="playlist.m3u"
+
+async function loadPlaylist(){
+
+let txt=await fetch(playlist).then(r=>r.text())
+
+let lines=txt.split("\n")
+
+let groups={}
+
+let currentGroup="Other"
+let currentName=""
+let currentUrl=""
+
+lines.forEach(line=>{
+
+if(line.startsWith("#EXTINF")){
+
+let name=line.split(",")[1]||"Channel"
+
+let groupMatch=line.match(/group-title="(.*?)"/)
+
+currentGroup=groupMatch?groupMatch[1]:"Other"
+
+currentName=name
+
+}
+
+else if(line.startsWith("http")){
+
+currentUrl=line.trim()
+
+if(!groups[currentGroup])
+groups[currentGroup]=[]
+
+groups[currentGroup].push({
+
+name:currentName,
+url:currentUrl
+
+})
+
+}
+
+})
+
+render(groups)
+
+}
+
+function render(groups){
+
+let container=document.getElementById("rows")
+
+Object.keys(groups).forEach(group=>{
+
+let row=document.createElement("div")
+
+row.className="row"
+
+let title=document.createElement("div")
+
+title.className="row-title"
+
+title.innerText=group
+
+row.appendChild(title)
+
+let cards=document.createElement("div")
+
+cards.className="cards"
+
+groups[group].forEach(ch=>{
+
+let card=document.createElement("div")
+
+card.className="card"
+
+card.innerText=ch.name
+
+card.tabIndex=0
+
+card.onclick=()=>play(ch.url)
+
+cards.appendChild(card)
+
+})
+
+row.appendChild(cards)
+
+container.appendChild(row)
+
+})
+
+}
+
+function play(url){
+
+document.getElementById("player").style.display="block"
+
+let video=document.getElementById("videoPlayer")
+
+video.src=url
+
+video.play()
+
+}
+
+document.getElementById("exit").onclick=()=>{
+
+let player=document.getElementById("player")
+
+let video=document.getElementById("videoPlayer")
+
+video.pause()
+
+video.src=""
+
+player.style.display="none"
+
+}
+
+document.addEventListener("keydown",e=>{
+
+let focused=document.activeElement
+
+if(!focused.classList.contains("card")) return
+
+let cards=[...document.querySelectorAll(".card")]
+
+let index=cards.indexOf(focused)
+
+if(e.key==="ArrowRight")
+cards[index+1]?.focus()
+
+if(e.key==="ArrowLeft")
+cards[index-1]?.focus()
+
+})
+
+loadPlaylist()
+
+</script>
+
+</body>
+</html>
